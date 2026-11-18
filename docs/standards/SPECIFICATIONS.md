@@ -35,7 +35,7 @@ Conformance claims: [CONFORMANCE.md](CONFORMANCE.md).
 | SECURE_WRAPPER, SESSION_*, TIMER_NOTIFY frames | `knxnetip`, `secure` | 3/8/9 KNXnet/IP Secure; AN159 | Encoded, sealed and opened (public sources) |
 | cEMI L_Data, L_Busmon, L_Raw, M_Prop*, M_FuncProp*, M_Reset | `cemi` | 3/6/3 EMI/IMI, cEMI clauses | |
 | TPCI, APCI, group value services | `apdu` | 3/3/4 Transport layer; 3/3/7 Application layer | |
-| Datapoint types 1–22, 26, 27, 29, 217, 222, 232, 234, 242, 251, 275 | `dpt` | 3/7/2 Datapoint Types | Only subtypes with published semantics are registered; the bits of the DPT 21/22 sets are kept as a number, not named |
+| Datapoint types 1–23, 25–27, 29, 30, 206, 207, 217, 219, 222, 225, 229, 230, 232, 234–238, 240–242, 244–246, 249–252, 254, 255, 275 | `dpt` | 3/7/2 Datapoint Types; the KNX master data (`DatapointTypes`) | Only subtypes with published semantics are registered; the master data is generated into `dpt/masterdata_gen.go` and pinned in `dpt/masterdata.lock`; the bits of the DPT 21/22/30 sets are kept as a number, not named; the composite types of the 200 range are structs of named fields |
 
 ## Sources actually used
 
@@ -53,6 +53,19 @@ The code was written from:
    largest encodable value 670433.28).
 3. No source code of another KNX stack was copied. The xknx DPT 20 value
    lists were used to cross-check names and numbers.
+4. The KNX master data published by KNX Association for ETS (the
+   `DatapointTypes` of `knx_master.xml` at update.knx.org, one file per
+   ETS project schema: `project-10` to `project-14` and `project-20` to
+   `project-23`). `dpt/masterdata.lock` pins the file used (schema 23,
+   master data version 326, by SHA-256); `internal/cmd/gendpt` generates
+   `dpt/masterdata_gen.go` from it, and the XML is not kept in the
+   repository. It gives the names, field layouts, enumeration values, units
+   and ranges of the datapoint types added in 0.15.0, and the tests compare
+   the hand-written table with it. The layouts were cross-checked against
+   xknx 4.1.1 where it implements the type. The master data of schema 20
+   lists the fields of 207.600, 241.800, 246.600, 252.600 and 254.600 in
+   the reverse order; schema 23 and xknx agree, and go-knx follows them.
+   A weekly workflow reports when KNX publishes a new file.
 
 ## Implemented without the specification text
 

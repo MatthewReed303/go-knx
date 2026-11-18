@@ -6,6 +6,7 @@
 | Recorded traffic | `testdata/captures` (README there): a KNX TP1 installation (knx-datasets, 1 150 094 frames), the live KNXnet/IP sessions of an ABB IP-Router IPR/S and IPS/S2.1 (Wireshark issue 14825, 46 059 frames with Wireshark's test captures), Wireshark's KNX test captures; decoded and encoded again byte for byte, compared with Wireshark 4.6.9 and the dataset authors' decode; replayed through `mgmt.Responder`, `client.Device`, discovery and the server; read by `internal/capture` | `make test`; `make captures-verify` (SHA256SUMS); `make captures-extended` (every TP1 frame against the CSV exports, fetched); `make captures-generate` (manifest, needs tshark) |
 | Golden frames | `knxnetip/testdata/frames.json` (45 frames built from the frame structures, not copied from a specification or capture) | `make test` |
 | DPT reference vectors | `dpt/testdata/xknx_vectors.json` (computed with xknx 4.0.0; known differences in `dpt/xknx_test.go`) | `make test` |
+| KNX master data | `dpt/masterdata_gen.go`, generated from the file pinned in `dpt/masterdata.lock`: `TestMasterDataLock`, `TestMasterDataCoverage` (every subtype registered or listed with a reason), `TestRegistryAgainstMasterData` (sizes, names, enumeration values), `TestLayoutsAgainstMasterData` (field boundaries and reserved bits of every layout); the generator in `internal/cmd/gendpt` is tested on its own sample file | `make test`; `make generate-check` (regenerates from the pinned file, fails on drift; in CI with the file cached by the lock's hash); `make masterdata-check` (network); weekly in `masterdata-check.yml` |
 | Fuzz tests | `FuzzXxx` in knxnetip, cemi, apdu, dpt and the root package (codecs); secure (session and wrapper frames), datasecure (S-A_Data, sync, tool access), keyring (parse), mgmt (responder, property description), server (UDP datagrams and TCP stream) and tunnel (client receive path) | `make fuzz FUZZTIME=30s` |
 | End-to-end over loopback sockets | `e2e/` | `make e2e` |
 | Hostile peers | `e2e/hostile_test.go`: noise, CONNECT floods, sequence replay, spoofed channel frames, stalled and lying TCP peers, forged and replayed secure frames, a garbage-answering server for the client, discovery against garbage | `make e2e` |
@@ -87,10 +88,10 @@ injected accept or read function.
 Still waiting real time: tests of the rate and of ROUTING_BUSY pauses with
 real sockets (lower bounds on elapsed time), the authentication and session
 timeouts of the server (`server/limits_test.go`), `mgmt.Responder`, which
-reads the wall clock, the chaos suite, the polling helper `eventually`
-of the older tests, and the rows of discovery `TestDeadlineIsTimeout`
-whose context ended before the call, which may read until the call's
-timeout (300 ms) before they report the context.
+reads the wall clock, the chaos suite, and the polling helper `eventually`
+of the older tests. Discovery `TestEndedContextReturnsPromptly` measures
+how long `Search` and `Describe` take once their context ended, against
+an upper bound (1 s) ten times shorter than their own timeout.
 
 ## Allocation budgets
 

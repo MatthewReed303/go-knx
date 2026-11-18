@@ -26,8 +26,8 @@
 //	KindScene     uint8                DPT 17
 //	KindSceneControl SceneControl      DPT 18
 //	KindDateTime  DateTime             DPT 19
-//	KindEnum      Enum                 DPT 20
-//	KindBits      uint64 (bit set)     DPT 21, 22, 26
+//	KindEnum      Enum                 DPT 20, 23
+//	KindBits      uint64 (bit set)     DPT 21, 22, 26, 30
 //	KindRGB       RGB                  DPT 232
 //	KindRGBW      RGBW                 DPT 251
 //	KindXYY       XYY                  DPT 242
@@ -35,6 +35,29 @@
 //	KindOnOffInfo OnOffInfo            DPT 27
 //	KindVersion   Version              DPT 217
 //	KindSetpoints RoomSetpoints        DPT 222, 275
+//	KindStatusMode StatusMode          DPT 6.020
+//	KindDoubleNibble DoubleNibble      DPT 25
+//	KindModeNext  ModeNext             DPT 206
+//	KindAlarmInfo AlarmInfo            DPT 219
+//	KindScalingSpeed ScalingSpeed      DPT 225
+//	KindMeteringValue MeteringValue    DPT 229
+//	KindMBusAddress MBusAddress        DPT 230
+//	KindHSV       HSV                  DPT 232.601
+//	KindTariffEnergy TariffEnergy      DPT 235
+//	KindPriorityControl PriorityControl DPT 236
+//	KindDALIGearDiagnostic DALIGearDiagnostic DPT 237
+//	KindDALIDiagnostic DALIDiagnostic  DPT 238
+//	KindCombinedPosition CombinedPosition DPT 240
+//	KindConverterStatus ConverterStatus DPT 244
+//	KindConverterTestResult ConverterTestResult DPT 245
+//	KindColourTransition ColourTransition DPT 249
+//	KindColourTemperatureControl ColourTemperatureControl DPT 250
+//	KindGeoLocation GeoLocation        DPT 255
+//	KindLightingActuatorStatus LightingActuatorStatus DPT 207.600
+//	KindBlindsStatus BlindsStatus      DPT 241
+//	KindBatteryInfo BatteryInfo        DPT 246
+//	KindRelativeRGBW RelativeRGBW      DPT 252
+//	KindRelativeRGB RelativeRGB        DPT 254
 //
 // Encode accepts these types and, where unambiguous, convertible ones (any
 // Go integer or float for a number, a name for an enumeration).
@@ -44,7 +67,9 @@
 // it). Dates are checked field by field, not against the calendar.
 //
 // Only subtypes whose semantics are published (KNX Standard volume 3/7/2,
-// Datapoint Types) are registered; an unknown subtype of a known main type
+// Datapoint Types, and the KNX master data that ETS uses) are registered;
+// the registry is checked against the master data version recorded in
+// dpt/masterdata.lock. An unknown subtype of a known main type
 // can still be used through [Lookup] of the main type ("9"), which has the
 // format of the family and no application semantics.
 package dpt
@@ -129,9 +154,35 @@ const (
 	KindOnOffInfo
 	KindVersion
 	KindSetpoints
+	KindStatusMode
+	KindDoubleNibble
+	KindModeNext
+	KindAlarmInfo
+	KindScalingSpeed
+	KindMeteringValue
+	KindMBusAddress
+	KindHSV
+	KindTariffEnergy
+	KindPriorityControl
+	KindDALIGearDiagnostic
+	KindDALIDiagnostic
+	KindCombinedPosition
+	KindConverterStatus
+	KindConverterTestResult
+	KindColourTransition
+	KindColourTemperatureControl
+	KindGeoLocation
+	KindLightingActuatorStatus
+	KindBlindsStatus
+	KindBatteryInfo
+	KindRelativeRGBW
+	KindRelativeRGB
 )
 
-var kindNames = [...]string{"bool", "control", "step", "char", "unsigned", "signed", "float", "time", "date", "string", "scene", "scene-control", "datetime", "enum", "bits", "rgb", "rgbw", "xyY", "access", "onoff-info", "version", "setpoints"}
+var kindNames = [...]string{"bool", "control", "step", "char", "unsigned", "signed", "float", "time", "date", "string", "scene", "scene-control", "datetime", "enum", "bits", "rgb", "rgbw", "xyY", "access", "onoff-info", "version", "setpoints",
+	"status-mode", "double-nibble", "mode-next", "alarm-info", "scaling-speed", "metering-value", "mbus-address", "hsv", "tariff-energy", "priority-control",
+	"dali-gear-diagnostic", "dali-diagnostic", "combined-position", "converter-status", "converter-test-result", "colour-transition", "colour-temperature-control", "geo-location",
+	"lighting-actuator-status", "blinds-status", "battery-info", "relative-rgbw", "relative-rgb"}
 
 // String names the kind.
 func (k Kind) String() string {
@@ -159,7 +210,8 @@ type Type struct {
 	// Labels are the names of the two values of a DPT 1 subtype (false,
 	// true), or of the enumeration values of a DPT 20 subtype.
 	Labels []string
-	// Enum maps the values of an enumeration to their names.
+	// Enum maps the values of an enumeration (DPT 20, 23, and the mode of
+	// DPT 206) to their names.
 	Enum map[uint8]string
 
 	codec codec
@@ -241,6 +293,10 @@ type codec struct {
 	decode func(t *Type, b []byte) (any, error)
 	parse  func(t *Type, s string) (any, error)
 	format func(t *Type, v any) (string, bool)
+	// layout is the bit width of each field of a layout codec, most
+	// significant first, negative for reserved bits; nil for other codecs.
+	// TestLayoutsAgainstMasterData compares it with the master data.
+	layout []int
 }
 
 var registry = map[ID]*Type{}
