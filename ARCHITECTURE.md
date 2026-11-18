@@ -215,7 +215,8 @@ do not all come back at once.
   the master data whose main type has a format the library knows without
   further semantics (booleans, controls, steps, characters, integers,
   floats, strings, enumerations, bit sets; `registerMasterData`); the
-  hand-written entries win. Tests compare the table with the master data
+  hand-written entries win, and every bit set the master data describes
+  takes the names of its bits from it (`Type.Flags`). Tests compare the table with the master data
   (sizes, names, enumeration values, layouts) and fail on a subtype that is
   neither registered nor listed with a reason in `masterDataNotRegistered`.
   A weekly workflow (`masterdata-check.yml`) compares the pin with what is

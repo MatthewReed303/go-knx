@@ -5,6 +5,27 @@ it computes the version, tags it and publishes this file's section of
 that version as the release notes. Add the section, headed exactly
 `## vX.Y.Z` and closed by a line `---`, before running it.
 
+## v0.16.0
+
+**Date:** unreleased
+**Previous release:** v0.15.0
+
+## Summary
+
+The bits of a bit set are named. `dpt.Type.Flags` names each bit of the DPT 21, 22, 26 and 30 subtypes as the KNX master data names them, least significant bit first, for the hand-written subtypes as for those registered from the master data, so an application can show or set a bit set's flags by name instead of by bit number.
+
+## Changes
+
+### Added
+
+- `dpt.Type.Flags`: the names of a bit set's bits (DPT 21, 22, 26, 30), `Flags[i]` for bit i of the decoded value, `""` for a reserved bit or a field wider than one bit (the scene number of 26.001); a bit the master data names only by its values is named by the text of its set value (26.001 bit 6). Nil for the other kinds and for the bit sets without a subtype in the master data (21.1200, 21.1201).
+
+### Tests
+
+- dpt `TestBitSetFlags`: every registered bit set with a master data subtype has one name (or none) per bit, the others and the other kinds none; named and reserved bits of 21.100, 21.101, 22.1000, 26.001 and 30.1010.
+
+---
+
 ## v0.15.0
 
 **Date:** 2026-11-18

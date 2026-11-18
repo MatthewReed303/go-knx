@@ -391,3 +391,55 @@ func TestLayoutsAgainstMasterData(t *testing.T) {
 		t.Fatal("no layout compared")
 	}
 }
+
+// Every bit set with a subtype in the master data names its bits, least
+// significant first, the hand-written ones included; the others, and the
+// other kinds, have no Flags.
+func TestBitSetFlags(t *testing.T) {
+	md := masterByID()
+	n := 0
+	for id, r := range registry {
+		if r.Kind != KindBits || md[id] == nil {
+			if r.Flags != nil {
+				t.Errorf("%s (%s) has flags %q", id, r.Kind, r.Flags)
+			}
+			continue
+		}
+		if len(r.Flags) != r.Bits {
+			t.Errorf("%s: %d flags for %d bits", id, len(r.Flags), r.Bits)
+			continue
+		}
+		n++
+	}
+	if n == 0 {
+		t.Fatal("no bit set has flags")
+	}
+	for _, c := range []struct {
+		id    string
+		bit   int
+		name  string
+		empty []int
+	}{
+		{"21.100", 7, "roomHMax", nil},
+		{"21.100", 0, "forceRequest", nil},
+		{"21.101", 0, "forceRequest", []int{1, 7}},
+		{"22.1000", 5, "KNX IP", []int{0, 3, 6, 15}},
+		{"22.1000", 1, "TP1", nil},
+		// The scene number of 26.001 is not a flag; its bit is named by its set value.
+		{"26.001", 6, "scene is inactive", []int{0, 5, 7}},
+		{"30.1010", 23, "activation state of channel 1", nil},
+	} {
+		typ := MustLookup(c.id)
+		if typ.Flags[c.bit] != c.name {
+			t.Errorf("%s bit %d is %q, want %q", c.id, c.bit, typ.Flags[c.bit], c.name)
+		}
+		for _, b := range c.empty {
+			if typ.Flags[b] != "" {
+				t.Errorf("%s bit %d is %q, want none", c.id, b, typ.Flags[b])
+			}
+		}
+	}
+	if MustLookup("21.1200").Flags != nil || MustLookup("9.001").Flags != nil {
+		t.Error("a type without named bits has flags")
+	}
+}
